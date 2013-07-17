@@ -90,7 +90,6 @@ func main() {
 				strBuf := [3]string{"", "", ""} //0-闲置 1-左天平 2-右天平   的输出字符串
 
 				for turn := 0; turn <= 2; turn++ {
-					strBuf[turn] = fmt.Sprintf("第%d次称重：", turn+1)
 					PlaceCnt[0] = 0
 					PlaceCnt[1] = 0
 					PlaceCnt[2] = 0
