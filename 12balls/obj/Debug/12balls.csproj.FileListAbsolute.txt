@@ -1,0 +1,7 @@
+C:\huangyg\project\12balls\12balls\obj\Debug\ResolveAssemblyReference.cache
+C:\huangyg\project\12balls\12balls\bin\Debug\12balls.exe
+C:\huangyg\project\12balls\12balls\bin\Debug\12balls.pdb
+C:\huangyg\project\12balls\12balls\obj\Debug\12balls.exe
+C:\huangyg\project\12balls\12balls\obj\Debug\12balls.pdb
+F:\huangyg\project\12balls_2\12balls\obj\Debug\12balls.exe
+F:\huangyg\project\12balls_2\12balls\obj\Debug\12balls.pdb
