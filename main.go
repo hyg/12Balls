@@ -3,171 +3,164 @@ package main
 
 import (
 	"fmt"
+	"time"
 )
 
-type Place struct {
-	place   int
-	place0  int
-	place1  int
-	place2  int
-	place00 int
-	place01 int
-	place02 int
-	place10 int
-	place11 int
-	place12 int
-	place20 int
-	place21 int
-	place22 int
+const m1 = 0x55555555 //binary: 0101...
+const m2 = 0x33333333 //binary: 00110011..
+const m4 = 0x0f0f0f0f //binary:  4 zeros,  4 ones ...
+const m8 = 0x00ff00ff //binary:  8 zeros,  8 ones ...
+
+func bitCount(x int) (n int) {
+	x = (x & m1) + ((x >> 1) & m1) //put count of each  2 bits into those  2 bits
+	x = (x & m2) + ((x >> 2) & m2) //put count of each  4 bits into those  4 bits
+	x = (x & m4) + ((x >> 4) & m4) //put count of each  8 bits into those  8 bits
+	x = (x & m8) + ((x >> 8) & m8) //put count of each 16 bits into those 16 bits
+	return x
 }
 
-// 0: 000
-// 1: 001
-// 2: 002
-// 3: 010
-// 4: 011
-// 5: 012
-// 6: 020
-// 7: 021
-// 8: 022
-// 9: 100
-//10: 101
-//11: 102
-//12: 110
-//13: 111
-//14: 112
-//15: 120
-//16: 121
-//17: 122
-//18: 200
-//19: 201
-//20: 202
-//21: 210
-//22: 211
-//23: 212
-//24: 220
-//25: 221
-//26: 222
+type result struct {
+	left    int
+	right   int
+	free    int
+	ballcnt int
+	mask0h  int //平衡时的偏重掩码
+	mask0l  int //平衡时的偏轻掩码
+	mask1h  int //左倾时的偏重掩码
+	mask1l  int //左倾时的偏轻掩码
+	mask2h  int //右倾时的偏重掩码
+	mask2l  int //右倾时的偏轻掩码
+}
+
+type solution struct {
+	left    int
+	right   int
+	left0   int
+	right0  int
+	left00  int
+	right00 int
+	left01  int
+	right01 int
+	left02  int
+	right02 int
+	left1   int
+	right1  int
+	left10  int
+	right10 int
+	left11  int
+	right11 int
+	left12  int
+	right12 int
+	left2   int
+	right2  int
+	left20  int
+	right20 int
+	left21  int
+	right21 int
+	left22  int
+	right22 int
+}
+
+var resultmap = make(map[int]map[int]result)
+var bitCnt [4096]int
+
+func try(step int, maskh int, maskl int, s solution) (ret bool) {
+
+	if bitCnt[maskh]+bitCnt[maskl] <= 1 {
+		fmt.Printf("\nmaskh=%d,%012b\tmaskl=%d,%012b", maskh, maskh, maskl, maskl)
+		return true
+	}
+
+	if step == 4 {
+		return false
+	}
+
+	for left, rightmap := range resultmap {
+		for right, themap := range rightmap {
+			mask0h := maskh & themap.mask0h
+			mask1h := maskh & themap.mask1h
+			mask2h := maskh & themap.mask2h
+			mask0l := maskl & themap.mask0l
+			mask1l := maskl & themap.mask1l
+			mask2l := maskl & themap.mask2l
+
+			if (step == 1) && ((bitCnt[mask0h]+bitCnt[mask0l] > 9) || (bitCnt[mask1h]+bitCnt[mask1l] > 9) || (bitCnt[mask2h]+bitCnt[mask2l] > 9)) {
+				continue
+			}
+
+			if (step == 2) && ((bitCnt[mask0h]+bitCnt[mask0l] > 3) || (bitCnt[mask1h]+bitCnt[mask1l] > 3) || (bitCnt[mask2h]+bitCnt[mask2l] > 3)) {
+				continue
+			}
+
+			if (step == 3) && ((bitCnt[mask0h]+bitCnt[mask0l] > 1) || (bitCnt[mask1h]+bitCnt[mask1l] > 1) || (bitCnt[mask2h]+bitCnt[mask2l] > 1)) {
+				continue
+			}
+
+			if try(step+1, mask0h, mask0l, s) {
+				fmt.Printf("\nstep=%d\t平衡\tleft=%d,%012b\tright=%d,%012b", step, left, left, right, right)
+			}
+			if try(step+1, mask1h, mask1l, s) {
+				fmt.Printf("\nstep=%d\t左倾\tleft=%d,%012b\tright=%d,%012b", step, left, left, right, right)
+			}
+			if try(step+1, mask2h, mask2l, s) {
+				fmt.Printf("\nstep=%d\t右倾\tleft=%d,%012b\tright=%d,%012b", step, left, left, right, right)
+			}
+		}
+	}
+	return false
+}
 
 func main() {
-	SolutionNum := 1 //解决方案总数
-	BallCnt := 12
-	Position := [3]string{"空", "左", "右"}
-	ResultHeavy := [3]string{"平", "左", "右"}
-	ResultLight := [3]string{"平", "右", "左"}
+	begin := time.Now()
+	fmt.Println("\nbegin:", begin.String())
 
-	var BallPlaceNo [14]int
-	//只使用1~13编号，表示各号球在三次称重时的位置编号，是0~26的整数。
-	//位置编号是三进制的三位数，分别为三次称重的：0-闲置 1-左天平 2-右天平
-	//如果要能测出每种情况，每个球的位置编号应该不重复。
-	//且为了剔除重复方案，只记录各球位置编号是递增的方案。
-
-	var PlaceBallNo [27]int
-	//正数表示占用该位置编号的球编号，负数表示占用反位置的球编号的负数。
-
-	Image := []int{0, 2, 1, 6, 8, 7, 3, 5, 4, 18, 20, 19, 24, 26, 25, 21, 23, 22, 9, 11, 10, 15, 17, 16, 12, 14, 13}
-	//反位置，或轻球的{位置编号->结果编号}映射
-	//重球在s1方案与轻球在s2将呈现相同的结果，这s1与s2是反位置。
-	//在同一个方案中，互反位置只能有一个被使用。
-	//结果编号的三位数分别为三次称重结果为：0-天平持平 1-天平左侧 2-天平右侧
-
-	var Bit [3][27]int
-	// 记录0~26的各位的三进制数字
-
-	for i := 0; i < 27; i++ {
-		Bit[0][i] = i % 3
-		Bit[1][i] = ((i - Bit[0][i]) / 3) % 3
-		Bit[2][i] = ((i - Bit[0][i] - Bit[1][i]*3) / 9) % 3
-
-		PlaceBallNo[i] = 0
+	//init the bit count
+	for i := 0; i < 4096; i++ {
+		bitCnt[i] = bitCount(i)
 	}
 
-	//遍历所有符合条件的方案。
-	CurBallNo := 1
-	CurPlaceNo := 1 //0方案无法识别轻重，直接放弃。
-	for CurBallNo > 0 {
-		for CurPlaceNo < 27 && PlaceBallNo[CurPlaceNo] != 0 {
-			CurPlaceNo++
-		}
-
-		if CurPlaceNo < 27 {
-			BallPlaceNo[CurBallNo] = CurPlaceNo
-			PlaceBallNo[CurPlaceNo] = CurBallNo
-			PlaceBallNo[Image[CurPlaceNo]] = -CurBallNo
-
-			if CurBallNo < BallCnt {
-				CurBallNo++
-			} else {
-				//所有球都有位置，方案完整。
-				Balance := true
-				PlaceCnt := []int{0, 0, 0} //0-闲置 1-左天平 2-右天平   的总球数
-
-				PrintBuf := fmt.Sprintf("第%d套方案\r\n", SolutionNum)
-				strBuf := [3]string{"", "", ""} //0-闲置 1-左天平 2-右天平   的输出字符串
-
-				for turn := 0; turn <= 2; turn++ {
-					PlaceCnt[0] = 0
-					PlaceCnt[1] = 0
-					PlaceCnt[2] = 0
-					strBuf[0] = ""
-					strBuf[1] = ""
-					strBuf[2] = ""
-
-					for ballno := 1; ballno <= BallCnt; ballno++ {
-						PlaceCnt[Bit[turn][BallPlaceNo[ballno]]]++
-						strBuf[Bit[turn][BallPlaceNo[ballno]]] += fmt.Sprintf("%d ", ballno)
-					}
-
-					if PlaceCnt[1] != PlaceCnt[2] {
-						Balance = false
-						break
-					} else {
-						PrintBuf += fmt.Sprintf("第%d次称重，左边：%s，右边：%s，空闲：%s.\r\n", turn, strBuf[1], strBuf[2], strBuf[0])
-					}
-
-				}
-
-				if Balance {
-					SolutionNum++
-
-					for ballno := 1; ballno <= BallCnt; ballno++ {
-						PrintBuf += fmt.Sprintf("%d号球位置：%s,%s,%s\t如果它偏重:%s,%s,%s\t如果它偏轻:%s,%s,%s\r\n",
-							ballno,
-							Position[Bit[0][BallPlaceNo[ballno]]],
-							Position[Bit[1][BallPlaceNo[ballno]]],
-							Position[Bit[2][BallPlaceNo[ballno]]],
-							ResultHeavy[Bit[0][BallPlaceNo[ballno]]],
-							ResultHeavy[Bit[1][BallPlaceNo[ballno]]],
-							ResultHeavy[Bit[2][BallPlaceNo[ballno]]],
-							ResultLight[Bit[0][BallPlaceNo[ballno]]],
-							ResultLight[Bit[1][BallPlaceNo[ballno]]],
-							ResultLight[Bit[2][BallPlaceNo[ballno]]])
-					}
-
-					fmt.Println(PrintBuf)
-				}
-				PlaceBallNo[CurPlaceNo] = 0
-				PlaceBallNo[Image[CurPlaceNo]] = 0
-				BallPlaceNo[CurBallNo] = 0
-				CurPlaceNo++
-			}
-		} else {
-			//CurPlaceNo == 27
-			//当前球可选的位置编号已经用尽，回溯上一个球
-			CurBallNo--
-
-			if CurBallNo > 0 {
-				//取上一个球的当前位置
-				CurPlaceNo = BallPlaceNo[CurBallNo]
-				//清除上一个球的位置
-				PlaceBallNo[CurPlaceNo] = 0
-				PlaceBallNo[Image[CurPlaceNo]] = 0
-				BallPlaceNo[CurBallNo] = 0
-				//位置编号加一，作为起点重新为上一个球找位置方案
-				CurPlaceNo++
-			}
-
-		}
-
+	//init the result map
+	for i := 0; i <= 4096; i++ {
+		resultmap[i] = make(map[int]result)
 	}
+
+	//init result map
+	CurLeftBit := 0
+	CurRightBit := 0
+	resultCnt := 0
+
+	for left := 1; left < 4095; left++ {
+		CurLeftBit = bitCnt[left]
+		if CurLeftBit <= 6 {
+			for right := left + 1; right < 4096; right++ {
+				CurRightBit = bitCnt[right]
+				if (CurLeftBit == CurRightBit) && (left&right == 0) {
+					//free := (left & right) &^ 0xfff
+					free := 0xfff - left - right
+					resultmap[left][right] =
+						result{
+							left,
+							right,
+							free,
+							CurLeftBit,
+							free,
+							free,
+							left,
+							right,
+							right,
+							left}
+
+					resultCnt++
+					//fmt.Printf("\nleft=%012b\tright=%012b\tfree1=%b\tfree2=%b", left, right, free, 0xfff-left-right)
+					//fmt.Printf("No.%d\tresultmap[%012b][%012b]=%v\n", resultCnt, left, right, resultmap[left][right])
+
+				}
+			}
+		}
+	}
+
+	var s solution
+	try(1, 0xfff, 0xfff, s)
+
+	fmt.Println("\nbegin:", begin.String(), "\nnow:", time.Now().String(), "\nused:", time.Since(begin))
 }
