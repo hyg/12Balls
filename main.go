@@ -5,6 +5,22 @@ import (
 	"fmt"
 )
 
+type Place struct {
+	place   int
+	place0  int
+	place1  int
+	place2  int
+	place00 int
+	place01 int
+	place02 int
+	place10 int
+	place11 int
+	place12 int
+	place20 int
+	place21 int
+	place22 int
+}
+
 // 0: 000
 // 1: 001
 // 2: 002
