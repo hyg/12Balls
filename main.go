@@ -32,87 +32,10 @@ type result struct {
 	mask2l  int //右倾时的偏轻掩码
 }
 
-type solution struct {
-	left    int
-	right   int
-	left0   int
-	right0  int
-	left00  int
-	right00 int
-	left01  int
-	right01 int
-	left02  int
-	right02 int
-	left1   int
-	right1  int
-	left10  int
-	right10 int
-	left11  int
-	right11 int
-	left12  int
-	right12 int
-	left2   int
-	right2  int
-	left20  int
-	right20 int
-	left21  int
-	right21 int
-	left22  int
-	right22 int
-}
-
 var resultmap = make(map[int]map[int]result)
 var bitCnt [4096]int
 
-func try(step int, maskh int, maskl int, s solution) (ret bool) {
-
-	if bitCnt[maskh]+bitCnt[maskl] <= 1 {
-		fmt.Printf("\nmaskh=%d,%012b\tmaskl=%d,%012b", maskh, maskh, maskl, maskl)
-		return true
-	}
-
-	if step == 4 {
-		return false
-	}
-
-	for left, rightmap := range resultmap {
-		for right, themap := range rightmap {
-			mask0h := maskh & themap.mask0h
-			mask1h := maskh & themap.mask1h
-			mask2h := maskh & themap.mask2h
-			mask0l := maskl & themap.mask0l
-			mask1l := maskl & themap.mask1l
-			mask2l := maskl & themap.mask2l
-
-			if (step == 1) && ((bitCnt[mask0h]+bitCnt[mask0l] > 9) || (bitCnt[mask1h]+bitCnt[mask1l] > 9) || (bitCnt[mask2h]+bitCnt[mask2l] > 9)) {
-				continue
-			}
-
-			if (step == 2) && ((bitCnt[mask0h]+bitCnt[mask0l] > 3) || (bitCnt[mask1h]+bitCnt[mask1l] > 3) || (bitCnt[mask2h]+bitCnt[mask2l] > 3)) {
-				continue
-			}
-
-			if (step == 3) && ((bitCnt[mask0h]+bitCnt[mask0l] > 1) || (bitCnt[mask1h]+bitCnt[mask1l] > 1) || (bitCnt[mask2h]+bitCnt[mask2l] > 1)) {
-				continue
-			}
-
-			if try(step+1, mask0h, mask0l, s) {
-				fmt.Printf("\nstep=%d\t平衡\tleft=%d,%012b\tright=%d,%012b", step, left, left, right, right)
-			}
-			if try(step+1, mask1h, mask1l, s) {
-				fmt.Printf("\nstep=%d\t左倾\tleft=%d,%012b\tright=%d,%012b", step, left, left, right, right)
-			}
-			if try(step+1, mask2h, mask2l, s) {
-				fmt.Printf("\nstep=%d\t右倾\tleft=%d,%012b\tright=%d,%012b", step, left, left, right, right)
-			}
-		}
-	}
-	return false
-}
-
-func main() {
-	begin := time.Now()
-	fmt.Println("\nbegin:", begin.String())
+func init() {
 
 	//init the bit count
 	for i := 0; i < 4096; i++ {
@@ -158,9 +81,186 @@ func main() {
 			}
 		}
 	}
+	return
+}
 
-	var s solution
-	try(1, 0xfff, 0xfff, s)
+type PossibleSet struct {
+	level int
+	seth  int
+	setl  int
+	child []step
+}
+
+type step struct {
+	level   int
+	left    int
+	right   int
+	outset0 PossibleSet
+	outset1 PossibleSet
+	outset2 PossibleSet
+}
+
+type weighset struct {
+	level int
+	still *step
+	left  *step
+	right *step
+}
+
+func findstep(level int, seth int, setl int) (bool, PossibleSet) {
+	var ps PossibleSet
+
+	ps.level = level
+	ps.seth = seth
+	ps.setl = setl
+	ps.child = make([]step, 1)
+
+	var s step
+	s.level = level
+
+	setbitmax := []int{27, 9, 3, 1}
+	for left, rightmap := range resultmap {
+		for right, themap := range rightmap {
+			//the next 3 branches set
+			set0h := seth & themap.mask0h
+			set1h := seth & themap.mask1h
+			set2h := seth & themap.mask2h
+			set0l := setl & themap.mask0l
+			set1l := setl & themap.mask1l
+			set2l := setl & themap.mask2l
+
+			setbit0 := bitCnt[set0h] + bitCnt[set0l]
+			setbit1 := bitCnt[set1h] + bitCnt[set1l]
+			setbit2 := bitCnt[set2h] + bitCnt[set2l]
+
+			if (setbit0 > setbitmax[level]) || (setbit1 > setbitmax[level]) || (setbit2 > setbitmax[level]) {
+				continue
+			}
+			s.left = left
+			s.right = right
+
+			if level == 3 {
+				//叶子节点
+			} else {
+				//递归
+				r0, ps0 := findstep(level+1, set0h, set0l)
+				r1, ps1 := findstep(level+1, set1h, set1l)
+				r2, ps2 := findstep(level+1, set2h, set2l)
+
+				if r0 && r1 && r2 {
+					s.outset0 = ps0
+					s.outset1 = ps1
+					s.outset2 = ps2
+
+					ps.child = append(ps.child, s)
+				}
+
+			}
+
+		}
+	}
+
+	return false, ps
+}
+
+func try(level int, seth int, setl int, s *step) (bool, *step) {
+
+	if bitCnt[seth]+bitCnt[setl] <= 1 {
+		fmt.Printf("\nseth=%d,%012b\tsetl=%d,%012b", seth, seth, setl, setl)
+		return true, s
+	}
+
+	if level == 4 {
+		return false, nil
+	}
+	setbitmax := []int{27, 9, 3, 1}
+
+	for left, rightmap := range resultmap {
+		for right, themap := range rightmap {
+			//the next 3 branches set
+			set0h := seth & themap.mask0h
+			set1h := seth & themap.mask1h
+			set2h := seth & themap.mask2h
+			set0l := setl & themap.mask0l
+			set1l := setl & themap.mask1l
+			set2l := setl & themap.mask2l
+
+			setbit0 := bitCnt[set0h] + bitCnt[set0l]
+			setbit1 := bitCnt[set1h] + bitCnt[set1l]
+			setbit2 := bitCnt[set2h] + bitCnt[set2l]
+
+			if (setbit0 > setbitmax[level]) || (setbit1 > setbitmax[level]) || (setbit2 > setbitmax[level]) {
+				continue
+			}
+
+			ret0, s0 := try(level+1, set0h, set0l, s)
+			ret1, s1 := try(level+1, set1h, set1l, s)
+			ret2, s2 := try(level+1, set2h, set2l, s)
+			if ret0 && ret1 && ret2 {
+				//find a good weighset
+				//thestep := s
+				//thestep.child = make([]weighset, 1)
+				//thestep.child = append(thestep.child, weighset{level + 1, s0, s1, s2})
+
+				fmt.Printf("\nstep=%d\tleft=%d(%012b)\tright=%d(%012b)\n0:%v\n1:%v\n2:%v", level, left, left, right, right, s0, s1, s2)
+			}
+		}
+	}
+	return false, nil
+}
+
+func main() {
+	begin := time.Now()
+	fmt.Println("\nbegin:", begin.String())
+
+	//init()
+	//init the bit count
+	for i := 0; i < 4096; i++ {
+		bitCnt[i] = bitCount(i)
+	}
+
+	//init the result map
+	for i := 0; i <= 4096; i++ {
+		resultmap[i] = make(map[int]result)
+	}
+
+	//init result map
+	CurLeftBit := 0
+	CurRightBit := 0
+	resultCnt := 0
+
+	for left := 1; left < 4095; left++ {
+		CurLeftBit = bitCnt[left]
+		if CurLeftBit <= 6 {
+			for right := left + 1; right < 4096; right++ {
+				CurRightBit = bitCnt[right]
+				if (CurLeftBit == CurRightBit) && (left&right == 0) {
+					//free := (left & right) &^ 0xfff
+					free := 0xfff - left - right
+					resultmap[left][right] =
+						result{
+							left,
+							right,
+							free,
+							CurLeftBit,
+							free,
+							free,
+							left,
+							right,
+							right,
+							left}
+
+					resultCnt++
+					//fmt.Printf("\nleft=%012b\tright=%012b\tfree1=%b\tfree2=%b", left, right, free, 0xfff-left-right)
+					//fmt.Printf("No.%d\tresultmap[%012b][%012b]=%v\n", resultCnt, left, right, resultmap[left][right])
+
+				}
+			}
+		}
+	}
+
+	var s step
+	try(1, 0xfff, 0xfff, &s)
 
 	fmt.Println("\nbegin:", begin.String(), "\nnow:", time.Now().String(), "\nused:", time.Since(begin))
 }
