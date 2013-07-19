@@ -96,10 +96,10 @@ type step struct {
 	outset2 PossibleSet
 }
 
-var inde = [5]string{"", "                ", "          ", "    ", ""}
+var ind = [5]string{"           ", "        ", "     ", "  ", ""}
 var setbitmax = []int{27, 9, 3, 1}
 
-func findstep(level int, ind string, seth int, setl int) (bool, PossibleSet) {
+func findstep(level int, prefix string, seth int, setl int) (bool, PossibleSet) {
 	bitNo := map[int]int{
 		1: 1, 2: 2, 4: 3, 8: 4, 16: 5, 32: 6, 64: 7, 128: 8, 256: 9, 512: 10, 1024: 11, 2048: 12,
 	}
@@ -139,10 +139,7 @@ func findstep(level int, ind string, seth int, setl int) (bool, PossibleSet) {
 			if level == 1 {
 				fmt.Printf("\n\n第%d套方案", child)
 			}
-			fmt.Printf("\n%s%s:天平[左](%012b)[右](%012b)", ind, inde[level], left, right)
-			//fmt.Printf("\n%s%d:平衡->可能集[重](%012b)[轻](%012b)", ind[level], child, set0h, set0l)
-			//fmt.Printf("\n%s%d:左倾->可能集[重](%012b)[轻](%012b)", ind[level], child, set1h, set1l)
-			//fmt.Printf("\n%s%d:右倾->可能集[重](%012b)[轻](%012b)", ind[level], child, set2h, set2l)
+			fmt.Printf("\n%s%s:(%012b)-(%012b)", prefix, ind[level], left, right)
 
 			if level == 3 {
 				//叶子节点
@@ -156,31 +153,31 @@ func findstep(level int, ind string, seth int, setl int) (bool, PossibleSet) {
 
 				ps.child = append(ps.child, s)
 
-				fmt.Printf("\n%s平衡", ind)
+				fmt.Printf("\n%s平", prefix)
 				if set0h > 0 {
-					fmt.Printf(":%d号球重", bitNo[set0h])
+					fmt.Printf(":%d重", bitNo[set0h])
 				} else if set0l > 0 {
-					fmt.Printf(":%d号球轻", bitNo[set0l])
+					fmt.Printf(":%d轻", bitNo[set0l])
 				} else {
-					fmt.Print(":不会出现")
+					fmt.Print(":不可能")
 				}
 
-				fmt.Printf("\n%s左倾", ind)
+				fmt.Printf("\n%s左", prefix)
 				if set1h > 0 {
-					fmt.Printf(":%d号球重", bitNo[set1h])
+					fmt.Printf(":%d重", bitNo[set1h])
 				} else if set1l > 0 {
-					fmt.Printf(":%d号球轻", bitNo[set1l])
+					fmt.Printf(":%d轻", bitNo[set1l])
 				} else {
-					fmt.Print(":不会出现")
+					fmt.Print(":不可能")
 				}
 
-				fmt.Printf("\n%s右倾", ind)
+				fmt.Printf("\n%s右", prefix)
 				if set2h > 0 {
-					fmt.Printf(":%d号球重", bitNo[set2h])
+					fmt.Printf(":%d重", bitNo[set2h])
 				} else if set2l > 0 {
-					fmt.Printf(":%d号球轻", bitNo[set2l])
+					fmt.Printf(":%d轻", bitNo[set2l])
 				} else {
-					fmt.Print(":不会出现")
+					fmt.Print(":不可能")
 				}
 
 				child++
@@ -190,15 +187,9 @@ func findstep(level int, ind string, seth int, setl int) (bool, PossibleSet) {
 
 			} else {
 				//递归
-				//fmt.Print("平衡->")
-				//ind += "平衡->"
-				r0, ps0 := findstep(level+1, ind+"平衡->", set0h, set0l)
-				//fmt.Print("左倾->")
-				//ind += "左倾->"
-				r1, ps1 := findstep(level+1, ind+"左倾->", set1h, set1l)
-				//fmt.Print("右倾->")
-				//ind += "右倾->"
-				r2, ps2 := findstep(level+1, ind+"右倾->", set2h, set2l)
+				r0, ps0 := findstep(level+1, prefix+"平>", set0h, set0l)
+				r1, ps1 := findstep(level+1, prefix+"左>", set1h, set1l)
+				r2, ps2 := findstep(level+1, prefix+"右>", set2h, set2l)
 
 				if r0 && r1 && r2 {
 					s.outset0 = ps0
@@ -219,8 +210,6 @@ func findstep(level int, ind string, seth int, setl int) (bool, PossibleSet) {
 	}
 
 	if len(ps.child) > 1 {
-		fmt.Println("\nnow:", time.Now().String())
-		//fmt.Printf("\n%s:%d(%012b)--%d(%012b)", ind[level-1], ps.child[1].left, ps.child[1].left, ps.child[1].right, ps.child[1].right)
 		return true, ps
 	} else {
 		return false, ps
