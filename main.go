@@ -100,6 +100,9 @@ type step struct {
 	outset2 PossibleSet
 }
 
+var ind = [4]string{"  ", "    ", "      ", "        "}
+var setbitmax = []int{27, 9, 3, 1}
+
 func findstep(level int, seth int, setl int) (bool, PossibleSet) {
 	var ps PossibleSet
 
@@ -108,10 +111,12 @@ func findstep(level int, seth int, setl int) (bool, PossibleSet) {
 	ps.setl = setl
 	ps.child = make([]step, 1)
 
+	child := 1
+	//fmt.Printf("\n%s:%d(%012b)--%d(%012b)", ind[level-1], seth, seth, setl, setl)
+
 	var s step
 	s.level = level
 
-	setbitmax := []int{27, 9, 3, 1}
 	for left, rightmap := range resultmap {
 		for right, themap := range rightmap {
 			//the next 3 branches set
@@ -132,6 +137,10 @@ func findstep(level int, seth int, setl int) (bool, PossibleSet) {
 			s.left = left
 			s.right = right
 
+			fmt.Printf("\n%s:%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)", ind[level-1], seth, seth, setl, setl, left, left, right, right, set0h, set0h, set0l, set0l)
+			fmt.Printf("\n%s:%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)", ind[level-1], seth, seth, setl, setl, left, left, right, right, set1h, set1h, set1l, set1l)
+			fmt.Printf("\n%s:%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)", ind[level-1], seth, seth, setl, setl, left, left, right, right, set2h, set2h, set2l, set2l)
+
 			if level == 3 {
 				//叶子节点
 				ps0 := PossibleSet{level + 1, set0h, set0l, nil}
@@ -143,6 +152,12 @@ func findstep(level int, seth int, setl int) (bool, PossibleSet) {
 				s.outset2 = ps2
 
 				ps.child = append(ps.child, s)
+
+				child++
+				if child > 3 {
+					return true, ps
+				}
+
 			} else {
 				//递归
 				r0, ps0 := findstep(level+1, set0h, set0l)
@@ -155,6 +170,11 @@ func findstep(level int, seth int, setl int) (bool, PossibleSet) {
 					s.outset2 = ps2
 
 					ps.child = append(ps.child, s)
+
+					child++
+					if child > 3 {
+						return true, ps
+					}
 				}
 
 			}
@@ -164,6 +184,7 @@ func findstep(level int, seth int, setl int) (bool, PossibleSet) {
 
 	if len(ps.child) > 1 {
 		fmt.Println("\nnow:", time.Now().String())
+		//fmt.Printf("\n%s:%d(%012b)--%d(%012b)", ind[level-1], ps.child[1].left, ps.child[1].left, ps.child[1].right, ps.child[1].right)
 		return true, ps
 	} else {
 		return false, ps
@@ -223,7 +244,7 @@ func main() {
 	ret, ps := findstep(1, 0xfff, 0xfff)
 
 	if ret {
-		fmt.Println("%v", ps)
+		fmt.Println("\n%v", ps)
 	}
 
 	fmt.Println("\nbegin:", begin.String(), "\nnow:", time.Now().String(), "\nused:", time.Since(begin))
