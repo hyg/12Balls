@@ -137,7 +137,7 @@ func findstep(level int, prefix string, seth int, setl int) (bool, PossibleSet) 
 			s.right = right
 
 			if level == 1 {
-				fmt.Printf("\n\n第%d套方案", child)
+				fmt.Printf("\n\n方案%d", child)
 			}
 			fmt.Printf("\n%s%s:(%012b)-(%012b)", prefix, ind[level], left, right)
 
@@ -226,7 +226,7 @@ func main() {
 
 	if ret {
 		//fmt.Println("\n%v", ps)
-		fmt.Println("一级方案总数：", len(ps.child)-1)
+		fmt.Println("\n\n一级方案总数：", len(ps.child)-1)
 	}
 
 	fmt.Println("\nbegin:", begin.String(), "\nnow:", time.Now().String(), "\nused:", time.Since(begin))
