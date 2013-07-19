@@ -108,8 +108,7 @@ func findstep(level int, seth int, setl int) (bool, PossibleSet) {
 	ps.child = make([]step, 1)
 
 	child := 1
-	//fmt.Printf("\n%s:%d(%012b)--%d(%012b)", ind[level-1], seth, seth, setl, setl)
-	fmt.Printf("\n%s:可能集[重](%012b)[轻](%012b)", ind[level], seth, setl)
+	//fmt.Printf("\n%s:可能集[重](%012b)[轻](%012b)", ind[level], seth, setl)
 
 	var s step
 	s.level = level
