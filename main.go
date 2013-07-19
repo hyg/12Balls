@@ -96,10 +96,14 @@ type step struct {
 	outset2 PossibleSet
 }
 
-var ind = [5]string{"", "1-", "2---", "3-----", "4-------"}
+var inde = [5]string{"", "                ", "          ", "    ", ""}
 var setbitmax = []int{27, 9, 3, 1}
 
-func findstep(level int, seth int, setl int) (bool, PossibleSet) {
+func findstep(level int, ind string, seth int, setl int) (bool, PossibleSet) {
+	bitNo := map[int]int{
+		1: 1, 2: 2, 4: 3, 8: 4, 16: 5, 32: 6, 64: 7, 128: 8, 256: 9, 512: 10, 1024: 11, 2048: 12,
+	}
+
 	var ps PossibleSet
 
 	ps.level = level
@@ -108,7 +112,6 @@ func findstep(level int, seth int, setl int) (bool, PossibleSet) {
 	ps.child = make([]step, 1)
 
 	child := 1
-	//fmt.Printf("\n%s:可能集[重](%012b)[轻](%012b)", ind[level], seth, setl)
 
 	var s step
 	s.level = level
@@ -133,15 +136,13 @@ func findstep(level int, seth int, setl int) (bool, PossibleSet) {
 			s.left = left
 			s.right = right
 
-			//fmt.Printf("\n%s%d:可能集[重](%012b)[轻](%012b)",ind[level-1],child,seth,setl)
-			fmt.Printf("\n%s%d:天平[左](%012b)[右](%012b)", ind[level], child, left, right)
-			fmt.Printf("\n%s%d:平衡->可能集[重](%012b)[轻](%012b)", ind[level], child, set0h, set0l)
-			fmt.Printf("\n%s%d:左倾->可能集[重](%012b)[轻](%012b)", ind[level], child, set1h, set1l)
-			fmt.Printf("\n%s%d:右倾->可能集[重](%012b)[轻](%012b)", ind[level], child, set2h, set2l)
-
-			//fmt.Printf("\n%s:%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)", ind[level-1], seth, seth, setl, setl, left, left, right, right, set0h, set0h, set0l, set0l)
-			//fmt.Printf("\n%s:%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)", ind[level-1], seth, seth, setl, setl, left, left, right, right, set1h, set1h, set1l, set1l)
-			//fmt.Printf("\n%s:%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)", ind[level-1], seth, seth, setl, setl, left, left, right, right, set2h, set2h, set2l, set2l)
+			if level == 1 {
+				fmt.Printf("\n\n第%d套方案", child)
+			}
+			fmt.Printf("\n%s%s:天平[左](%012b)[右](%012b)", ind, inde[level], left, right)
+			//fmt.Printf("\n%s%d:平衡->可能集[重](%012b)[轻](%012b)", ind[level], child, set0h, set0l)
+			//fmt.Printf("\n%s%d:左倾->可能集[重](%012b)[轻](%012b)", ind[level], child, set1h, set1l)
+			//fmt.Printf("\n%s%d:右倾->可能集[重](%012b)[轻](%012b)", ind[level], child, set2h, set2l)
 
 			if level == 3 {
 				//叶子节点
@@ -155,6 +156,33 @@ func findstep(level int, seth int, setl int) (bool, PossibleSet) {
 
 				ps.child = append(ps.child, s)
 
+				fmt.Printf("\n%s平衡", ind)
+				if set0h > 0 {
+					fmt.Printf(":%d号球重", bitNo[set0h])
+				} else if set0l > 0 {
+					fmt.Printf(":%d号球轻", bitNo[set0l])
+				} else {
+					fmt.Print(":不会出现")
+				}
+
+				fmt.Printf("\n%s左倾", ind)
+				if set1h > 0 {
+					fmt.Printf(":%d号球重", bitNo[set1h])
+				} else if set1l > 0 {
+					fmt.Printf(":%d号球轻", bitNo[set1l])
+				} else {
+					fmt.Print(":不会出现")
+				}
+
+				fmt.Printf("\n%s右倾", ind)
+				if set2h > 0 {
+					fmt.Printf(":%d号球重", bitNo[set2h])
+				} else if set2l > 0 {
+					fmt.Printf(":%d号球轻", bitNo[set2l])
+				} else {
+					fmt.Print(":不会出现")
+				}
+
 				child++
 				if child > 1 {
 					return true, ps
@@ -162,9 +190,15 @@ func findstep(level int, seth int, setl int) (bool, PossibleSet) {
 
 			} else {
 				//递归
-				r0, ps0 := findstep(level+1, set0h, set0l)
-				r1, ps1 := findstep(level+1, set1h, set1l)
-				r2, ps2 := findstep(level+1, set2h, set2l)
+				//fmt.Print("平衡->")
+				//ind += "平衡->"
+				r0, ps0 := findstep(level+1, ind+"平衡->", set0h, set0l)
+				//fmt.Print("左倾->")
+				//ind += "左倾->"
+				r1, ps1 := findstep(level+1, ind+"左倾->", set1h, set1l)
+				//fmt.Print("右倾->")
+				//ind += "右倾->"
+				r2, ps2 := findstep(level+1, ind+"右倾->", set2h, set2l)
 
 				if r0 && r1 && r2 {
 					s.outset0 = ps0
@@ -199,11 +233,11 @@ func main() {
 
 	initdata()
 
-	ret, ps := findstep(1, 0xfff, 0xfff)
+	ret, ps := findstep(1, "", 0xfff, 0xfff)
 
 	if ret {
 		//fmt.Println("\n%v", ps)
-		fmt.Println("\n%d", len(ps.child))
+		fmt.Println("一级方案总数：", len(ps.child)-1)
 	}
 
 	fmt.Println("\nbegin:", begin.String(), "\nnow:", time.Now().String(), "\nused:", time.Since(begin))
