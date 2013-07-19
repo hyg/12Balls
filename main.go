@@ -154,7 +154,7 @@ func findstep(level int, seth int, setl int) (bool, PossibleSet) {
 				ps.child = append(ps.child, s)
 
 				child++
-				if child > 3 {
+				if child > 1 {
 					return true, ps
 				}
 
@@ -172,7 +172,7 @@ func findstep(level int, seth int, setl int) (bool, PossibleSet) {
 					ps.child = append(ps.child, s)
 
 					child++
-					if child > 10 {
+					if level == 2 && child > 1 {
 						return true, ps
 					}
 				}
@@ -244,7 +244,8 @@ func main() {
 	ret, ps := findstep(1, 0xfff, 0xfff)
 
 	if ret {
-		fmt.Println("\n%v", ps)
+		//fmt.Println("\n%v", ps)
+		fmt.Println("\n%d", len(ps.child))
 	}
 
 	fmt.Println("\nbegin:", begin.String(), "\nnow:", time.Now().String(), "\nused:", time.Since(begin))
