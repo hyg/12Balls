@@ -172,7 +172,7 @@ func findstep(level int, seth int, setl int) (bool, PossibleSet) {
 					ps.child = append(ps.child, s)
 
 					child++
-					if child > 3 {
+					if child > 10 {
 						return true, ps
 					}
 				}
