@@ -35,8 +35,7 @@ type result struct {
 var resultmap = make(map[int]map[int]result)
 var bitCnt [4096]int
 
-func init() {
-
+func initdata() {
 	//init the bit count
 	for i := 0; i < 4096; i++ {
 		bitCnt[i] = bitCount(i)
@@ -74,9 +73,6 @@ func init() {
 							left}
 
 					resultCnt++
-					//fmt.Printf("\nleft=%012b\tright=%012b\tfree1=%b\tfree2=%b", left, right, free, 0xfff-left-right)
-					//fmt.Printf("No.%d\tresultmap[%012b][%012b]=%v\n", resultCnt, left, right, resultmap[left][right])
-
 				}
 			}
 		}
@@ -100,7 +96,7 @@ type step struct {
 	outset2 PossibleSet
 }
 
-var ind = [5]string{"", "  ", "    ", "      ", "        "}
+var ind = [5]string{"", "1-", "2---", "3-----", "4-------"}
 var setbitmax = []int{27, 9, 3, 1}
 
 func findstep(level int, seth int, setl int) (bool, PossibleSet) {
@@ -113,6 +109,7 @@ func findstep(level int, seth int, setl int) (bool, PossibleSet) {
 
 	child := 1
 	//fmt.Printf("\n%s:%d(%012b)--%d(%012b)", ind[level-1], seth, seth, setl, setl)
+	fmt.Printf("\n%s:可能集[重](%012b)[轻](%012b)", ind[level], seth, setl)
 
 	var s step
 	s.level = level
@@ -137,9 +134,15 @@ func findstep(level int, seth int, setl int) (bool, PossibleSet) {
 			s.left = left
 			s.right = right
 
-			fmt.Printf("\n%s:%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)", ind[level-1], seth, seth, setl, setl, left, left, right, right, set0h, set0h, set0l, set0l)
-			fmt.Printf("\n%s:%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)", ind[level-1], seth, seth, setl, setl, left, left, right, right, set1h, set1h, set1l, set1l)
-			fmt.Printf("\n%s:%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)", ind[level-1], seth, seth, setl, setl, left, left, right, right, set2h, set2h, set2l, set2l)
+			//fmt.Printf("\n%s%d:可能集[重](%012b)[轻](%012b)",ind[level-1],child,seth,setl)
+			fmt.Printf("\n%s%d:天平[左](%012b)[右](%012b)", ind[level], child, left, right)
+			fmt.Printf("\n%s%d:平衡->可能集[重](%012b)[轻](%012b)", ind[level], child, set0h, set0l)
+			fmt.Printf("\n%s%d:左倾->可能集[重](%012b)[轻](%012b)", ind[level], child, set1h, set1l)
+			fmt.Printf("\n%s%d:右倾->可能集[重](%012b)[轻](%012b)", ind[level], child, set2h, set2l)
+
+			//fmt.Printf("\n%s:%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)", ind[level-1], seth, seth, setl, setl, left, left, right, right, set0h, set0h, set0l, set0l)
+			//fmt.Printf("\n%s:%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)", ind[level-1], seth, seth, setl, setl, left, left, right, right, set1h, set1h, set1l, set1l)
+			//fmt.Printf("\n%s:%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)\t%d(%012b)--%d(%012b)", ind[level-1], seth, seth, setl, setl, left, left, right, right, set2h, set2h, set2l, set2l)
 
 			if level == 3 {
 				//叶子节点
@@ -195,51 +198,7 @@ func main() {
 	begin := time.Now()
 	fmt.Println("\nbegin:", begin.String())
 
-	//init()
-	//init the bit count
-	for i := 0; i < 4096; i++ {
-		bitCnt[i] = bitCount(i)
-	}
-
-	//init the result map
-	for i := 0; i <= 4096; i++ {
-		resultmap[i] = make(map[int]result)
-	}
-
-	//init result map
-	CurLeftBit := 0
-	CurRightBit := 0
-	resultCnt := 0
-
-	for left := 1; left < 4095; left++ {
-		CurLeftBit = bitCnt[left]
-		if CurLeftBit <= 6 {
-			for right := left + 1; right < 4096; right++ {
-				CurRightBit = bitCnt[right]
-				if (CurLeftBit == CurRightBit) && (left&right == 0) {
-					//free := (left & right) &^ 0xfff
-					free := 0xfff - left - right
-					resultmap[left][right] =
-						result{
-							left,
-							right,
-							free,
-							CurLeftBit,
-							free,
-							free,
-							left,
-							right,
-							right,
-							left}
-
-					resultCnt++
-					//fmt.Printf("\nleft=%012b\tright=%012b\tfree1=%b\tfree2=%b", left, right, free, 0xfff-left-right)
-					//fmt.Printf("No.%d\tresultmap[%012b][%012b]=%v\n", resultCnt, left, right, resultmap[left][right])
-
-				}
-			}
-		}
-	}
+	initdata()
 
 	ret, ps := findstep(1, 0xfff, 0xfff)
 
