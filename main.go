@@ -100,7 +100,7 @@ type step struct {
 	outset2 PossibleSet
 }
 
-var ind = [4]string{"  ", "    ", "      ", "        "}
+var ind = [5]string{"", "  ", "    ", "      ", "        "}
 var setbitmax = []int{27, 9, 3, 1}
 
 func findstep(level int, seth int, setl int) (bool, PossibleSet) {
