@@ -19,20 +19,7 @@ func bitCount(x int) (n int) {
 	return x
 }
 
-type result struct {
-	left    int
-	right   int
-	free    int
-	ballcnt int
-	mask0h  int //平衡时的偏重掩码
-	mask0l  int //平衡时的偏轻掩码
-	mask1h  int //左倾时的偏重掩码
-	mask1l  int //左倾时的偏轻掩码
-	mask2h  int //右倾时的偏重掩码
-	mask2l  int //右倾时的偏轻掩码
-}
-
-var resultmap = make(map[int]map[int]result)
+var freemap = make(map[int]map[int]int)
 var bitCnt [8192]int
 
 func initdata() {
@@ -41,9 +28,9 @@ func initdata() {
 		bitCnt[i] = bitCount(i)
 	}
 
-	//init the result map
+	//init the free map
 	for i := 0; i <= 8192; i++ {
-		resultmap[i] = make(map[int]result)
+		freemap[i] = make(map[int]int)
 	}
 
 	//init result map
@@ -57,20 +44,7 @@ func initdata() {
 			for right := left + 1; right < 8192; right++ {
 				CurRightBit = bitCnt[right]
 				if (CurLeftBit == CurRightBit) && (left&right == 0) {
-					//free := (left & right) &^ 0xfff
-					free := 0x1fff - left - right
-					resultmap[left][right] =
-						result{
-							left,
-							right,
-							free,
-							CurLeftBit,
-							free,
-							free,
-							left,
-							right,
-							right,
-							left}
+					freemap[left][right] = 0x1fff - left - right
 
 					resultCnt++
 				}
@@ -117,15 +91,15 @@ func findstep(level int, seth int, setl int) (bool, PossibleSet) {
 	var s step
 	s.level = level
 
-	for left, rightmap := range resultmap {
-		for right, themap := range rightmap {
+	for left, rightmap := range freemap {
+		for right, free := range rightmap {
 			//the next 3 branches set
-			set0h := seth & themap.mask0h
-			set1h := seth & themap.mask1h
-			set2h := seth & themap.mask2h
-			set0l := setl & themap.mask0l
-			set1l := setl & themap.mask1l
-			set2l := setl & themap.mask2l
+			set0h := seth & free
+			set1h := seth & left
+			set2h := seth & right
+			set0l := setl & free
+			set1l := setl & right
+			set2l := setl & left
 
 			set0 := bitCnt[set0h|set0l]
 			set1 := bitCnt[set1h|set1l]
@@ -221,7 +195,7 @@ func main() {
 	ret, ps := findstep(1, 0x1fff, 0x1fff)
 
 	if ret {
-		//fmt.Println("\n%v", ps)
+		fmt.Println("\nsearch completed.\nbegin:", begin.String(), "\nnow:", time.Now().String(), "\nused:", time.Since(begin))
 		fmt.Println("\n\n一级方案总数：", len(ps.child))
 
 		print(ps, "")
