@@ -33,16 +33,16 @@ type result struct {
 }
 
 var resultmap = make(map[int]map[int]result)
-var bitCnt [4096]int
+var bitCnt [8192]int
 
 func initdata() {
 	//init the bit count
-	for i := 0; i < 4096; i++ {
+	for i := 0; i < 8192; i++ {
 		bitCnt[i] = bitCount(i)
 	}
 
 	//init the result map
-	for i := 0; i <= 4096; i++ {
+	for i := 0; i <= 8192; i++ {
 		resultmap[i] = make(map[int]result)
 	}
 
@@ -51,14 +51,14 @@ func initdata() {
 	CurRightBit := 0
 	resultCnt := 0
 
-	for left := 1; left < 4095; left++ {
+	for left := 1; left < 8191; left++ {
 		CurLeftBit = bitCnt[left]
 		if CurLeftBit <= 6 {
-			for right := left + 1; right < 4096; right++ {
+			for right := left + 1; right < 8192; right++ {
 				CurRightBit = bitCnt[right]
 				if (CurLeftBit == CurRightBit) && (left&right == 0) {
 					//free := (left & right) &^ 0xfff
-					free := 0xfff - left - right
+					free := 0x1fff - left - right
 					resultmap[left][right] =
 						result{
 							left,
@@ -77,6 +77,8 @@ func initdata() {
 			}
 		}
 	}
+
+	fmt.Printf("resultCnt:%d\r\n", resultCnt)
 	return
 }
 
@@ -96,22 +98,21 @@ type step struct {
 	outset2 PossibleSet
 }
 
-var ind = [5]string{"           ", "        ", "     ", "  ", ""}
+var ind = [5]string{"", "        ", "      ", "   ", ""}
 var setbitmax = []int{27, 9, 3, 1}
+var bitNo = map[int]int{
+	1: 1, 2: 2, 4: 3, 8: 4, 16: 5, 32: 6, 64: 7, 128: 8, 256: 9, 512: 10, 1024: 11, 2048: 12, 4096: 13,
+}
 
-func findstep(level int, prefix string, seth int, setl int) (bool, PossibleSet) {
-	bitNo := map[int]int{
-		1: 1, 2: 2, 4: 3, 8: 4, 16: 5, 32: 6, 64: 7, 128: 8, 256: 9, 512: 10, 1024: 11, 2048: 12,
-	}
-
+func findstep(level int, seth int, setl int) (bool, PossibleSet) {
 	var ps PossibleSet
 
 	ps.level = level
 	ps.seth = seth
 	ps.setl = setl
-	ps.child = make([]step, 1)
+	ps.child = make([]step, 0)
 
-	child := 1
+	//child := 0
 
 	var s step
 	s.level = level
@@ -126,20 +127,16 @@ func findstep(level int, prefix string, seth int, setl int) (bool, PossibleSet) 
 			set1l := setl & themap.mask1l
 			set2l := setl & themap.mask2l
 
-			setbit0 := bitCnt[set0h] + bitCnt[set0l]
-			setbit1 := bitCnt[set1h] + bitCnt[set1l]
-			setbit2 := bitCnt[set2h] + bitCnt[set2l]
+			set0 := bitCnt[set0h|set0l]
+			set1 := bitCnt[set1h|set1l]
+			set2 := bitCnt[set2h|set2l]
 
-			if (setbit0 > setbitmax[level]) || (setbit1 > setbitmax[level]) || (setbit2 > setbitmax[level]) {
+			if (set0 > setbitmax[level]) || (set1 > setbitmax[level]) || (set2 > setbitmax[level]) {
 				continue
 			}
+
 			s.left = left
 			s.right = right
-
-			if level == 1 {
-				fmt.Printf("\n\n方案%d", child)
-			}
-			fmt.Printf("\n%s%s:(%012b)-(%012b)", prefix, ind[level], left, right)
 
 			if level == 3 {
 				//叶子节点
@@ -153,43 +150,13 @@ func findstep(level int, prefix string, seth int, setl int) (bool, PossibleSet) 
 
 				ps.child = append(ps.child, s)
 
-				fmt.Printf("\n%s平", prefix)
-				if set0h > 0 {
-					fmt.Printf(":%d重", bitNo[set0h])
-				} else if set0l > 0 {
-					fmt.Printf(":%d轻", bitNo[set0l])
-				} else {
-					fmt.Print(":不可能")
-				}
-
-				fmt.Printf("\n%s左", prefix)
-				if set1h > 0 {
-					fmt.Printf(":%d重", bitNo[set1h])
-				} else if set1l > 0 {
-					fmt.Printf(":%d轻", bitNo[set1l])
-				} else {
-					fmt.Print(":不可能")
-				}
-
-				fmt.Printf("\n%s右", prefix)
-				if set2h > 0 {
-					fmt.Printf(":%d重", bitNo[set2h])
-				} else if set2l > 0 {
-					fmt.Printf(":%d轻", bitNo[set2l])
-				} else {
-					fmt.Print(":不可能")
-				}
-
-				child++
-				if child > 1 {
-					return true, ps
-				}
+				return true, ps
 
 			} else {
 				//递归
-				r0, ps0 := findstep(level+1, prefix+"平>", set0h, set0l)
-				r1, ps1 := findstep(level+1, prefix+"左>", set1h, set1l)
-				r2, ps2 := findstep(level+1, prefix+"右>", set2h, set2l)
+				r0, ps0 := findstep(level+1, set0h, set0l)
+				r1, ps1 := findstep(level+1, set1h, set1l)
+				r2, ps2 := findstep(level+1, set2h, set2l)
 
 				if r0 && r1 && r2 {
 					s.outset0 = ps0
@@ -198,12 +165,15 @@ func findstep(level int, prefix string, seth int, setl int) (bool, PossibleSet) 
 
 					ps.child = append(ps.child, s)
 
-					child++
-					if level == 2 && child > 1 {
+					if level == 2 {
 						return true, ps
-					}
+					} /*else if level == 1 {
+						child++
+						if child == 3 {
+							return true, ps
+						}
+					}*/
 				}
-
 			}
 
 		}
@@ -211,8 +181,34 @@ func findstep(level int, prefix string, seth int, setl int) (bool, PossibleSet) 
 
 	if len(ps.child) > 1 {
 		return true, ps
+	}
+	return false, ps
+}
+
+func print(ps PossibleSet, prefix string) {
+	if ps.level == 1 {
+		for psID, step := range ps.child {
+			fmt.Printf("\n\n方案:%d\r\n", psID+1)
+			fmt.Printf("%s:(%013b)-(%013b)\n", ind[1], step.left, step.right)
+			print(step.outset0, "平")
+			print(step.outset1, "左")
+			print(step.outset2, "右")
+		}
+	} else if ps.level == 4 {
+		if (ps.seth > 0) && (ps.seth == ps.setl) {
+			fmt.Printf("%s:%d异常\n", prefix, bitNo[ps.seth])
+		} else if ps.seth > 0 {
+			fmt.Printf("%s:%d重\n", prefix, bitNo[ps.seth])
+		} else if ps.setl > 0 {
+			fmt.Printf("%s:%d轻\n", prefix, bitNo[ps.setl])
+		} else {
+			fmt.Printf("%s:不可能\n", prefix)
+		}
 	} else {
-		return false, ps
+		fmt.Printf("%s%s:(%013b)-(%013b)\n", prefix, ind[ps.level], ps.child[0].left, ps.child[0].right)
+		print(ps.child[0].outset0, prefix+">平")
+		print(ps.child[0].outset1, prefix+">左")
+		print(ps.child[0].outset2, prefix+">右")
 	}
 }
 
@@ -222,11 +218,13 @@ func main() {
 
 	initdata()
 
-	ret, ps := findstep(1, "", 0xfff, 0xfff)
+	ret, ps := findstep(1, 0x1fff, 0x1fff)
 
 	if ret {
 		//fmt.Println("\n%v", ps)
-		fmt.Println("\n\n一级方案总数：", len(ps.child)-1)
+		fmt.Println("\n\n一级方案总数：", len(ps.child))
+
+		print(ps, "")
 	}
 
 	fmt.Println("\nbegin:", begin.String(), "\nnow:", time.Now().String(), "\nused:", time.Since(begin))
